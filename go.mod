@@ -1,4 +1,4 @@
-module github.com/demouth/orenoagentcli
+module github.com/demouth/orenoagent-cli
 
 go 1.25.5
 
