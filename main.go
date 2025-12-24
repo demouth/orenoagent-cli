@@ -172,6 +172,7 @@ type model struct {
 	textarea    textarea.Model
 	senderStyle lipgloss.Style
 	agentStyle  lipgloss.Style
+	helpStyle   lipgloss.Style
 	err         error
 }
 
@@ -203,6 +204,7 @@ Type a message and press Enter to send.`)
 		viewport:    vp,
 		senderStyle: lipgloss.NewStyle().Background(lipgloss.Color("5")),
 		agentStyle:  lipgloss.NewStyle().Background(lipgloss.Color("2")),
+		helpStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
 		err:         nil,
 	}
 }
@@ -232,17 +234,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.viewport.GotoBottom()
 	case answerMessage:
-		m.messages = append(m.messages, m.agentStyle.Render("Agent"), msg.message)
+		m.messages = append(m.messages, m.agentStyle.Render(" Agent "), msg.message)
 		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		m.viewport.GotoBottom()
 		return m, nil
 	case reasoningMessage:
-		m.messages = append(m.messages, m.agentStyle.Render("Reasoning"), msg.message)
+		m.messages = append(m.messages, m.agentStyle.Render(" Reasoning "), m.helpStyle.Render(msg.message))
 		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		m.viewport.GotoBottom()
 		return m, nil
 	case functionCallMessage:
-		m.messages = append(m.messages, m.agentStyle.Render("Function Call"), msg.message)
+		m.messages = append(m.messages, m.agentStyle.Render(" Function Call "), m.helpStyle.Render(msg.message))
 		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 		m.viewport.GotoBottom()
 		return m, nil
@@ -256,7 +258,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			message := m.textarea.Value() + "\n"
 			m.messages = append(m.messages,
-				m.senderStyle.Render("You:"),
+				m.senderStyle.Render(" You "),
 				message)
 			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
 			m.textarea.Reset()
