@@ -65,7 +65,7 @@ func ask(question string, p *tea.Program) {
 
 	go func() {
 		results, _ := agent.Ask(ctx, question)
-		for result := range results {
+		for result := range results.Subscribe() {
 			switch r := result.(type) {
 			case *orenoagent.MessageResult:
 				p.Send(answerMessage{message: r.String()})
