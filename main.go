@@ -2,13 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -16,8 +11,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/demouth/orenoagent-go"
 	"github.com/openai/openai-go/v3"
-	"github.com/tectiv3/websearch"
-	"github.com/tectiv3/websearch/provider"
 )
 
 const gap = "\n\n"
@@ -25,112 +18,35 @@ const gap = "\n\n"
 type functionCallMessage struct {
 	message string
 }
+
+func (m functionCallMessage) Content() string {
+	s := lipgloss.NewStyle().Background(lipgloss.Color("2")).Render(" Function Call ") + " " +
+		lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(m.message)
+	return s
+}
+
 type answerMessage struct {
 	message string
 }
+
+func (m answerMessage) Content() string {
+	return lipgloss.NewStyle().Background(lipgloss.Color("2")).Render(" Agent ") + " " + m.message
+}
+
 type reasoningMessage struct {
 	message string
+}
+
+func (m reasoningMessage) Content() string {
+	s := lipgloss.NewStyle().Background(lipgloss.Color("2")).Render(" Reasoning ") +
+		" " +
+		lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(m.message)
+	return s
 }
 
 var program *tea.Program
 var agent *orenoagent.Agent
 var ctx context.Context
-var tools = []orenoagent.Tool{
-	{
-		Name:        "currentTime",
-		Description: "Get the current date and time with timezone in a human-readable format.",
-		Function: func(_ string) string {
-			return time.Now().Format(time.RFC3339)
-		},
-	},
-	{
-		// NOTE: This is a sample function. Do not use it in production environments.
-
-		Name:        "webSearch",
-		Description: "Get the current date and time with timezone in a human-readable format.",
-		Parameters: map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"keyword": map[string]string{
-					"type":        "string",
-					"description": "web search keyword.",
-				},
-			},
-			"required": []string{"keyword"},
-		},
-		Function: func(args string) string {
-			var param struct {
-				Keyword string
-			}
-			err := json.Unmarshal([]byte(args), &param)
-			if err != nil {
-				return fmt.Sprintf("%v", err)
-			}
-
-			type result struct {
-				Title   string
-				Link    string
-				Snippet string
-			}
-			results := []result{}
-			web := websearch.New(provider.NewUnofficialDuckDuckGo())
-			res, err := web.Search(param.Keyword, 10)
-			if err != nil {
-				return fmt.Sprintf("%v", err)
-			}
-			for _, ddgor := range res {
-				r := result{
-					Title:   ddgor.Title,
-					Link:    ddgor.Link.String(),
-					Snippet: ddgor.Description,
-				}
-				results = append(results, r)
-			}
-			v, _ := json.Marshal(results)
-
-			return string(v)
-		},
-	},
-	{
-		Name:        "WebReader",
-		Description: "Reads and returns the content from the specified URL",
-		Parameters: map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"url": map[string]string{
-					"type":        "string",
-					"description": "URL of the page to retrieve",
-				},
-			},
-			"required": []string{"url"},
-		},
-		Function: func(args string) string {
-			var param struct {
-				Url string
-			}
-			err := json.Unmarshal([]byte(args), &param)
-			if err != nil {
-				return fmt.Sprintf("%v", err)
-			}
-
-			req, _ := http.NewRequest("GET", param.Url, nil)
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-
-			client := &http.Client{}
-			resp, err := client.Do(req)
-			if err != nil {
-				return fmt.Sprintf("%v", err)
-			}
-			defer resp.Body.Close()
-			bodyBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Sprintf("%v", err)
-			}
-
-			return string(bodyBytes)
-		},
-	},
-}
 
 func main() {
 	model := initialModel()
@@ -138,7 +54,7 @@ func main() {
 
 	client := openai.NewClient()
 	ctx = context.Background()
-	agent = orenoagent.NewAgent(client, tools, true)
+	agent = orenoagent.NewAgent(client, Tools, true)
 
 	if _, err := program.Run(); err != nil {
 		log.Fatal(err)
@@ -152,11 +68,11 @@ func ask(question string, p *tea.Program) {
 		for result := range results {
 			switch r := result.(type) {
 			case *orenoagent.MessageResult:
-				p.Send(answerMessage{message: r.String() + "\n"})
+				p.Send(answerMessage{message: r.String()})
 			case *orenoagent.ReasoningResult:
-				p.Send(reasoningMessage{message: r.String() + "\n"})
+				p.Send(reasoningMessage{message: r.String()})
 			case *orenoagent.FunctionCallResult:
-				p.Send(functionCallMessage{message: r.String() + "\n"})
+				p.Send(functionCallMessage{message: r.String()})
 			}
 		}
 	}()
@@ -167,13 +83,10 @@ type (
 )
 
 type model struct {
-	viewport    viewport.Model
-	messages    []string
-	textarea    textarea.Model
-	senderStyle lipgloss.Style
-	agentStyle  lipgloss.Style
-	helpStyle   lipgloss.Style
-	err         error
+	viewport viewport.Model
+	messages []string
+	textarea textarea.Model
+	err      error
 }
 
 func initialModel() model {
@@ -199,13 +112,10 @@ Type a message and press Enter to send.`)
 	ta.KeyMap.InsertNewline.SetEnabled(false)
 
 	return model{
-		textarea:    ta,
-		messages:    []string{},
-		viewport:    vp,
-		senderStyle: lipgloss.NewStyle().Background(lipgloss.Color("5")),
-		agentStyle:  lipgloss.NewStyle().Background(lipgloss.Color("2")),
-		helpStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
-		err:         nil,
+		textarea: ta,
+		messages: []string{},
+		viewport: vp,
+		err:      nil,
 	}
 }
 
@@ -230,22 +140,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if len(m.messages) > 0 {
 			// Wrap content before setting it.
-			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+			m.render()
 		}
 		m.viewport.GotoBottom()
 	case answerMessage:
-		m.messages = append(m.messages, m.agentStyle.Render(" Agent "), msg.message)
-		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+		m.messages = append(m.messages, msg.Content())
+		m.render()
 		m.viewport.GotoBottom()
 		return m, nil
 	case reasoningMessage:
-		m.messages = append(m.messages, m.agentStyle.Render(" Reasoning "), m.helpStyle.Render(msg.message))
-		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+		m.messages = append(m.messages, msg.Content())
+		m.render()
 		m.viewport.GotoBottom()
 		return m, nil
 	case functionCallMessage:
-		m.messages = append(m.messages, m.agentStyle.Render(" Function Call "), m.helpStyle.Render(msg.message))
-		m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+		m.messages = append(m.messages, msg.Content())
+		m.render()
 		m.viewport.GotoBottom()
 		return m, nil
 	case tea.KeyMsg:
@@ -256,11 +166,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			fmt.Println(m.textarea.Value())
 			return m, tea.Quit
 		case tea.KeyEnter:
-			message := m.textarea.Value() + "\n"
-			m.messages = append(m.messages,
-				m.senderStyle.Render(" You "),
-				message)
-			m.viewport.SetContent(lipgloss.NewStyle().Width(m.viewport.Width).Render(strings.Join(m.messages, "\n")))
+			message := m.textarea.Value()
+			m.messages = append(m.messages, lipgloss.NewStyle().Background(lipgloss.Color("5")).Render(" You ")+" "+message)
+			m.render()
 			m.textarea.Reset()
 			ask(message, program)
 			m.viewport.GotoBottom()
@@ -273,6 +181,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(tiCmd, vpCmd)
+}
+
+func (m *model) render() {
+	var s string
+	for _, message := range m.messages {
+		s = s + lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderBottom(true).
+			BorderForeground(lipgloss.Color("241")).
+			PaddingTop(1).
+			PaddingLeft(1).
+			PaddingRight(1).
+			Render(
+				lipgloss.NewStyle().Width(m.viewport.Width).Render(message),
+			)
+	}
+	m.viewport.SetContent(s)
 }
 
 func (m model) View() string {
