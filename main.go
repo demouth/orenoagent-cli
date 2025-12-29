@@ -15,6 +15,19 @@ import (
 
 const gap = "\n\n"
 
+type Result interface {
+	Content() string
+}
+
+type askMessage struct {
+	message string
+}
+
+func (m askMessage) Content() string {
+	s := lipgloss.NewStyle().Background(lipgloss.Color("5")).Render(" You ") + " " + m.message
+	return s
+}
+
 type functionCallMessage struct {
 	message string
 }
@@ -84,7 +97,7 @@ type (
 
 type model struct {
 	viewport viewport.Model
-	messages []string
+	messages []Result
 	textarea textarea.Model
 	err      error
 }
@@ -113,7 +126,7 @@ Type a message and press Enter to send.`)
 
 	return model{
 		textarea: ta,
-		messages: []string{},
+		messages: []Result{},
 		viewport: vp,
 		err:      nil,
 	}
@@ -144,17 +157,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.viewport.GotoBottom()
 	case answerMessage:
-		m.messages = append(m.messages, msg.Content())
+		m.messages = append(m.messages, msg)
 		m.render()
 		m.viewport.GotoBottom()
 		return m, nil
 	case reasoningMessage:
-		m.messages = append(m.messages, msg.Content())
+		m.messages = append(m.messages, msg)
 		m.render()
 		m.viewport.GotoBottom()
 		return m, nil
 	case functionCallMessage:
-		m.messages = append(m.messages, msg.Content())
+		m.messages = append(m.messages, msg)
 		m.render()
 		m.viewport.GotoBottom()
 		return m, nil
@@ -167,7 +180,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyEnter:
 			message := m.textarea.Value()
-			m.messages = append(m.messages, lipgloss.NewStyle().Background(lipgloss.Color("5")).Render(" You ")+" "+message)
+			askMsg := askMessage{message: message}
+			m.messages = append(m.messages, askMsg)
 			m.render()
 			m.textarea.Reset()
 			ask(message, program)
@@ -194,7 +208,7 @@ func (m *model) render() {
 			PaddingLeft(1).
 			PaddingRight(1).
 			Render(
-				lipgloss.NewStyle().Width(m.viewport.Width).Render(message),
+				lipgloss.NewStyle().Width(m.viewport.Width).Render(message.Content()),
 			)
 	}
 	m.viewport.SetContent(s)
