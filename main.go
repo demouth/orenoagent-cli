@@ -15,6 +15,8 @@ import (
 
 const gap = "\n\n"
 
+type RefreshEvent struct{}
+
 type Result interface {
 	Content() string
 }
@@ -80,10 +82,20 @@ func ask(question string, p *tea.Program) {
 		results, _ := agent.Ask(ctx, question)
 		for result := range results.Subscribe() {
 			switch r := result.(type) {
-			case *orenoagent.MessageResult:
-				p.Send(answerMessage{message: r.String()})
-			case *orenoagent.ReasoningResult:
-				p.Send(reasoningMessage{message: r.String()})
+			case *orenoagent.MessageDeltaResult:
+				mes := &answerMessage{message: r.String()}
+				p.Send(mes)
+				for range r.Subscribe() {
+					mes.message = r.String()
+					p.Send(RefreshEvent{})
+				}
+			case *orenoagent.ReasoningDeltaResult:
+				mes := &reasoningMessage{message: r.String()}
+				p.Send(mes)
+				for range r.Subscribe() {
+					mes.message = r.String()
+					p.Send(RefreshEvent{})
+				}
 			case *orenoagent.FunctionCallResult:
 				p.Send(functionCallMessage{message: r.String()})
 			}
@@ -156,12 +168,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.render()
 		}
 		m.viewport.GotoBottom()
-	case answerMessage:
+	case RefreshEvent:
+		m.render()
+		m.viewport.GotoBottom()
+		return m, nil
+	case *answerMessage:
 		m.messages = append(m.messages, msg)
 		m.render()
 		m.viewport.GotoBottom()
 		return m, nil
-	case reasoningMessage:
+	case *reasoningMessage:
 		m.messages = append(m.messages, msg)
 		m.render()
 		m.viewport.GotoBottom()
