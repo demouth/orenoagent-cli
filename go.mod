@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/demouth/orenoagent-go v0.3.0
+	github.com/demouth/orenoagent-go v0.4.0
 	github.com/openai/openai-go/v3 v3.15.0
 	github.com/tectiv3/websearch v0.0.0-20240328132458-dd796f507c3d
 )

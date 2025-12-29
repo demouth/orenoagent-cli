@@ -69,7 +69,12 @@ func main() {
 
 	client := openai.NewClient()
 	ctx = context.Background()
-	agent = orenoagent.NewAgent(client, Tools, true)
+	agent = orenoagent.NewAgent(
+		client,
+		orenoagent.WithTools(Tools),
+		orenoagent.WithReasoningSummary("auto"),
+		orenoagent.WithModel(openai.ChatModelGPT5Nano),
+	)
 
 	if _, err := program.Run(); err != nil {
 		log.Fatal(err)
