@@ -10,7 +10,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/demouth/orenoagent-go"
-	"github.com/openai/openai-go/v3"
+	"github.com/demouth/orenoagent-go/provider/openai"
+	openaiSDK "github.com/openai/openai-go/v3"
 )
 
 const gap = "\n\n"
@@ -67,13 +68,14 @@ func main() {
 	model := initialModel()
 	program = tea.NewProgram(model)
 
-	client := openai.NewClient()
+	client := openaiSDK.NewClient()
 	ctx = context.Background()
 	agent = orenoagent.NewAgent(
-		client,
+		openai.NewProvider(client),
 		orenoagent.WithTools(Tools),
 		orenoagent.WithReasoningSummary("auto"),
-		orenoagent.WithModel(openai.ChatModelGPT5Nano),
+		orenoagent.WithReasoningEffort("medium"),
+		orenoagent.WithModel(openaiSDK.ChatModelGPT5Nano),
 	)
 
 	if _, err := program.Run(); err != nil {

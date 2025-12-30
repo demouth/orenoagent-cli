@@ -32,6 +32,10 @@ github.com/demouth/orenoagent-go v0.3.0 h1:5LnlTQ384p990O78DFo/uyNj0X4QnuM1zlH/+
 github.com/demouth/orenoagent-go v0.3.0/go.mod h1:EDGuSpXyBW263StAQl+sMVRpJdI39fjfzki8KO4VDgM=
 github.com/demouth/orenoagent-go v0.4.0 h1:2SxnuaBchooJzOFDqHgo+HV0pwxo2gLphuUSnxdCUck=
 github.com/demouth/orenoagent-go v0.4.0/go.mod h1:EDGuSpXyBW263StAQl+sMVRpJdI39fjfzki8KO4VDgM=
+github.com/demouth/orenoagent-go v0.5.0 h1:mHUkfrAHUIBGpEu/WLavtl/SBFA8PysIbWw+bbvomEc=
+github.com/demouth/orenoagent-go v0.5.0/go.mod h1:EDGuSpXyBW263StAQl+sMVRpJdI39fjfzki8KO4VDgM=
+github.com/demouth/orenoagent-go v0.5.1 h1:cF1ZOlA8VrXTuBMeQpo1dauxnIYpN2RD2zGWF7JkOnQ=
+github.com/demouth/orenoagent-go v0.5.1/go.mod h1:EDGuSpXyBW263StAQl+sMVRpJdI39fjfzki8KO4VDgM=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f h1:Y/CXytFA4m6baUTXGLOoWe4PQhGxaX0KpnayAqC48p4=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f/go.mod h1:vw97MGsxSvLiUE2X8qFplwetxpGLQrlU1Q9AUEIzCaM=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
